@@ -1,0 +1,17 @@
+streamlit>=1.28.0
+numpy>=1.24.0
+opencv-python>=4.8.0
+Pillow>=10.0.0
+scikit-image>=0.21.0
+pandas>=2.0.0
+matplotlib>=3.7.0
+scipy>=1.10.0
+
+# Optional dependencies for advanced perceptual metrics
+# Uncomment these lines if you want NIQE, BRISQUE, PIQE metrics
+# torch>=2.0.0
+# pyiqa>=0.1.10
+
+# Optional dependency for HaarPSIMED metric
+# Uncomment this line if you want HaarPSIMED metric
+# PyWavelets>=1.4.0
