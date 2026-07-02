@@ -20,8 +20,8 @@ except ImportError:
 
 # ====================== PAGE CONFIGURATION ======================
 st.set_page_config(
-    page_title="Viveka Post-Processing Demo",
-    page_icon="🔬",
+    page_title="PAR Post-Processing Demo",
+    page_icon="amrita_logo.svg",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -31,7 +31,7 @@ st.markdown(
     """
     <style>
     .main-header {
-        background: linear-gradient(90deg, #1a237e 0%, #283593 100%);
+        background: linear-gradient(90deg, #FF9933 0%, #FF8800 100%);
         padding: 20px;
         border-radius: 10px;
         color: white;
@@ -47,6 +47,16 @@ st.markdown(
         margin: 10px 0 0 0;
         font-size: 1.1em;
         opacity: 0.9;
+    }
+    .logo-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    .logo-container img {
+        height: 60px;
+        width: auto;
     }
     .metric-card {
         background: white;
@@ -132,7 +142,7 @@ def resize_to_match(reference, target):
     return target
 
 
-# ====================== VIVEKA REFINER (Same as original implementation) ======================
+# ====================== PAR REFINER (Same as original implementation) ======================
 class VivekaRefiner:
     def __init__(self, guide_thresh=1.5, input_thresh=3.0, spins=2,
                  use_adaptive_gains=True, use_pathology_preservation=True,
@@ -639,12 +649,16 @@ def main():
     except ImportError:
         pass  # pyiqa not available, will use fallback values
     
-    # Header
+    # Header with Amrita logo
+    col_logo1, col_logo2, col_logo3 = st.columns([1, 2, 1])
+    with col_logo2:
+        st.image("amrita_logo.svg", width=150)
+    
     st.markdown(
         """
         <div class="main-header">
-            <h1>🔬 Viveka Post-Processing Module</h1>
-            <p>Interactive Demonstration of the Viveka Refinement Framework for Medical Image Denoising</p>
+            <h1>🔬 PAR Post-Processing Module</h1>
+            <p>Interactive Demonstration of the Physics Aware Refinement (PAR) Framework for Medical Image Denoising</p>
         </div>
         """,
         unsafe_allow_html=True
@@ -652,12 +666,13 @@ def main():
     
     # Sidebar for parameters
     with st.sidebar:
-        st.header("⚙️ Viveka Parameters")
+        st.header("⚙️ PAR Parameters")
         
         refinement_strength = st.selectbox(
             "Refinement Strength",
             options=['gentle', 'balanced', 'strong'],
             index=1,
+            key="refinement_strength",
             help="Controls the intensity of CLAHE enhancement"
         )
         
@@ -667,6 +682,7 @@ def main():
             max_value=5.0,
             value=1.5,
             step=0.1,
+            key="guide_thresh",
             help="Threshold for DCT coefficient selection from denoised image"
         )
         
@@ -676,6 +692,7 @@ def main():
             max_value=10.0,
             value=3.0,
             step=0.5,
+            key="input_thresh",
             help="Threshold for DCT coefficient selection from noisy image"
         )
         
@@ -685,6 +702,7 @@ def main():
             max_value=0.5,
             value=0.1,
             step=0.01,
+            key="smooth_weight",
             help="Weight for smoothness regularization"
         )
         
@@ -694,17 +712,27 @@ def main():
             max_value=3.0,
             value=1.0,
             step=0.1,
+            key="fidelity_weight",
             help="Weight for fidelity to original denoised image"
         )
         
         st.markdown("---")
         st.markdown("### Components")
         
-        use_dct = st.checkbox("DCT Detail Extraction", value=True)
-        use_adaptive = st.checkbox("Adaptive Gains", value=True)
-        use_uncertainty = st.checkbox("Uncertainty Guidance", value=True)
-        use_edge_protection = st.checkbox("Edge Protection", value=True)
-        use_pathology = st.checkbox("Pathology Preservation", value=True)
+        use_dct = st.checkbox("DCT Detail Extraction", value=True, key="use_dct")
+        use_adaptive = st.checkbox("Adaptive Gains", value=True, key="use_adaptive")
+        use_uncertainty = st.checkbox("Uncertainty Guidance", value=True, key="use_uncertainty")
+        use_edge_protection = st.checkbox("Edge Protection", value=True, key="use_edge_protection")
+        use_pathology = st.checkbox("Pathology Preservation", value=True, key="use_pathology")
+        
+        st.markdown("---")
+        
+        # Update/Apply button
+        update_clicked = st.button("✅ Update & Apply Changes", use_container_width=True, type="primary")
+        if update_clicked:
+            # Store current values in session state and trigger rerun
+            st.session_state.params_updated = True
+            st.rerun()
         
         st.markdown("---")
         st.markdown("### Difference Map Settings")
@@ -715,6 +743,7 @@ def main():
             max_value=30,
             value=10,
             step=1,
+            key="amplify_factor",
             help="Amplification factor for difference visualization"
         )
         
@@ -722,7 +751,7 @@ def main():
         st.markdown("### About")
         st.info(
             """
-            **Viveka** (Sanskrit: विवेक - "discrimination, discernment")
+            **PAR** (Physics Aware Refinement) is a post-processing refinement module designed to enhance denoised medical images. It leverages advanced techniques to recover fine details, adaptively enhance regions based on anatomical structures, and preserve diagnostically relevant features while minimizing artifacts.
             
             A post-processing refinement module that enhances denoised 
             medical images by:
@@ -779,7 +808,11 @@ def main():
             with col_b:
                 st.image(denoised_img, caption="Denoised Output", use_container_width=True)
         
-        # Initialize Viveka Refiner with sidebar parameters
+        # Show info message about Update button
+        if not st.session_state.get('params_updated', False):
+            st.info("💡 Adjust parameters in the sidebar and click **✅ Update & Apply Changes** to process with new settings.")
+        
+        # Initialize PAR Refiner with sidebar parameters
         refiner = VivekaRefiner(
             guide_thresh=guide_thresh,
             input_thresh=input_thresh,
@@ -793,13 +826,22 @@ def main():
             fidelity_weight=fidelity_weight
         )
         
-        # Apply Viveka refinement
-        with st.spinner("🔄 Applying Viveka post-processing..."):
+        # Show processing status
+        status_text = "🔄 Applying PAR post-processing..."
+        if st.session_state.get('params_updated', False):
+            status_text = "✅ Applying updated parameters..."
+        
+        # Apply PAR refinement
+        with st.spinner(status_text):
             post_processed_img = refiner.refine(
                 denoised_img.copy(),
                 noisy_img.copy(),
                 model_type='X-GAN'
             )
+        
+        # Reset the update flag after processing
+        if st.session_state.get('params_updated', False):
+            st.session_state.params_updated = False
         
         # Generate difference maps
         diff_map = generate_difference_map(denoised_img, post_processed_img, amplify_factor)
@@ -807,7 +849,7 @@ def main():
         
         # ====================== VISUALIZATION SECTION ======================
         st.header("🖼️ Visual Comparison")
-        st.markdown("Comparison of noisy input, denoised output, Viveka post-processed result, and difference map.")
+        st.markdown("Comparison of noisy input, denoised output, PAR post-processed result, and difference map.")
         
         # Display all four images in one row
         col1, col2, col3, col4 = st.columns(4)
@@ -819,7 +861,7 @@ def main():
             st.image(denoised_img, caption="🔧 Denoised Output", use_container_width=True)
         
         with col3:
-            st.image(post_processed_img, caption="✨ Viveka Post-Processed", use_container_width=True)
+            st.image(post_processed_img, caption="✨ PAR Post-Processed", use_container_width=True)
         
         with col4:
             st.image(diff_map, caption="📊 Difference Map (Amplified)", use_container_width=True, clamp=True)
@@ -831,7 +873,7 @@ def main():
         
         # ====================== METRICS SECTION ======================
         st.header("📈 Comprehensive Evaluation Metrics")
-        st.markdown("Quantitative comparison between denoised output and Viveka post-processed result.")
+        st.markdown("Quantitative comparison between denoised output and PAR post-processed result.")
         
         # Compute all metrics
         with st.spinner("📊 Computing comprehensive metrics..."):
@@ -847,7 +889,7 @@ def main():
                 f"{all_metrics['BRISQUE (denoised)']:.4f}",
                 f"{all_metrics['PIQE (denoised)']:.4f}"
             ],
-            'Viveka Post-Processed': [
+            'PAR Post-Processed': [
                 f"{all_metrics['NIQE (post-processed)']:.4f}",
                 f"{all_metrics['BRISQUE (post-processed)']:.4f}",
                 f"{all_metrics['PIQE (post-processed)']:.4f}"
@@ -882,7 +924,7 @@ def main():
                 f"{all_metrics['LaSSIM (denoised)']:.4f}",
                 f"{all_metrics['HaarPSIMED (denoised)']:.4f}"
             ],
-            'Viveka Post-Processed': [
+            'PAR Post-Processed': [
                 f"{all_metrics['LaSSIM (post-processed)']:.4f}",
                 f"{all_metrics['HaarPSIMED (post-processed)']:.4f}"
             ],
@@ -915,7 +957,7 @@ def main():
                 f"{all_metrics['Mean Gradient (denoised)']:.4f}",
                 f"{all_metrics['Sharpness (denoised)']:.4f}"
             ],
-            'Viveka Post-Processed': [
+            'PAR Post-Processed': [
                 f"{all_metrics['Edge Density (post-processed)']:.4f}",
                 f"{all_metrics['Mean Gradient (post-processed)']:.4f}",
                 f"{all_metrics['Sharpness (post-processed)']:.4f}"
@@ -1016,7 +1058,7 @@ def main():
             
             # 3. Post-processed image
             axes[0, 2].imshow(post_processed_img, cmap='gray')
-            axes[0, 2].set_title('Viveka Post-Processed', fontsize=12, fontweight='bold')
+            axes[0, 2].set_title('PAR Post-Processed', fontsize=12, fontweight='bold')
             axes[0, 2].axis('off')
             
             # 4. Difference map (color)
@@ -1028,7 +1070,7 @@ def main():
             # 5. Histogram comparison
             axes[1, 1].hist(noisy_img.flatten(), bins=50, alpha=0.5, label='Noisy', color='gray')
             axes[1, 1].hist(denoised_img.flatten(), bins=50, alpha=0.5, label='Denoised', color='blue')
-            axes[1, 1].hist(post_processed_img.flatten(), bins=50, alpha=0.5, label='Viveka', color='red')
+            axes[1, 1].hist(post_processed_img.flatten(), bins=50, alpha=0.5, label='PAR', color='red')
             axes[1, 1].set_title('Intensity Distribution', fontsize=12, fontweight='bold')
             axes[1, 1].legend()
             axes[1, 1].set_xlabel('Intensity')
@@ -1049,7 +1091,7 @@ def main():
             axes[1, 2].axis('off')
             plt.colorbar(im2, ax=axes[1, 2], fraction=0.046, pad=0.04)
             
-            plt.suptitle('Comprehensive Viveka Analysis', fontsize=14, fontweight='bold', y=0.98)
+            plt.suptitle('Comprehensive PAR Analysis', fontsize=14, fontweight='bold', y=0.98)
             plt.tight_layout()
             st.pyplot(fig)
         
@@ -1068,7 +1110,7 @@ def main():
         st.download_button(
             label="📥 Download Post-Processed Image",
             data=buf,
-            file_name="viveka_post_processed.png",
+            file_name="par_post_processed.png",
             mime="image/png"
         )
         
@@ -1082,7 +1124,7 @@ def main():
         st.download_button(
             label="📥 Download Difference Map",
             data=diff_buf,
-            file_name="viveka_difference_map.png",
+            file_name="par_difference_map.png",
             mime="image/png"
         )
         
@@ -1096,7 +1138,7 @@ def main():
         st.download_button(
             label="📥 Download Full Metrics Report",
             data=csv,
-            file_name="viveka_comprehensive_metrics.csv",
+            file_name="par_comprehensive_metrics.csv",
             mime="text/csv"
         )
         
@@ -1114,7 +1156,7 @@ def main():
                 f"{all_metrics['Mean Gradient (denoised)']:.4f}",
                 f"{all_metrics['Sharpness (denoised)']:.4f}"
             ],
-            'Viveka_Post_Processed': [
+            'PAR_Post_Processed': [
                 f"{all_metrics['NIQE (post-processed)']:.4f}",
                 f"{all_metrics['BRISQUE (post-processed)']:.4f}",
                 f"{all_metrics['PIQE (post-processed)']:.4f}",
@@ -1130,7 +1172,7 @@ def main():
         st.download_button(
             label="📥 Download Comparison Table",
             data=csv_comparison,
-            file_name="viveka_comparison_table.csv",
+            file_name="par_comparison_table.csv",
             mime="text/csv"
         )
     
@@ -1139,7 +1181,7 @@ def main():
     
     else:
         # Show placeholder
-        st.info("👆 Upload both images above to see the Viveka post-processing in action!")
+        st.info("👆 Upload both images above to see the PAR post-processing in action!")
         
         # Show example of what the app does
         st.markdown("### How it works:")
@@ -1147,10 +1189,10 @@ def main():
             """
             1. **Upload Noisy Image**: The original noisy medical image
             2. **Upload Denoised Image**: Output from your denoising model (e.g., X-GAN)
-            3. **Adjust Parameters**: Fine-tune Viveka's refinement behavior
+            3. **Adjust Parameters**: Fine-tune PAR's refinement behavior
             4. **View Results**: See side-by-side comparison and comprehensive metrics
             
-            The Viveka module enhances the denoised output by:
+            The PAR module enhances the denoised output by:
             - Recovering fine details through DCT-based processing
             - Applying region-specific gains (bone, lung, background)
             - Using uncertainty maps to focus refinement
@@ -1169,7 +1211,7 @@ def main():
     st.markdown(
         """
         <div style='text-align: center; color: #666; padding: 20px;'>
-            <p><b>Viveka Post-Processing Demo</b> | Amrita School of AI</p>
+            <p><b>PAR Post-Processing Demo</b> | Amrita School of AI</p>
             <p style='font-size: 0.9em;'>Ideated by: Siju K S | Supervised by: Dr. Vipin V</p>
         </div>
         """,
