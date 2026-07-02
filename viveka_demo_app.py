@@ -193,7 +193,7 @@ def estimate_input_quality(image):
     
     if quality_score > 60:
         category = "Excellent"
-        recommendation = "Input is already high quality. Use gentle refinement or skip Viveka."
+        recommendation = "Input is already high quality. Use gentle refinement or skip PAR."
     elif quality_score > 40:
         category = "Good"
         recommendation = "Input is good quality. Balanced refinement recommended."
@@ -1223,7 +1223,7 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
-        # Initialize Viveka Refiner
+        # Initialize PAR Refiner
         refiner = VivekaRefiner(
             guide_thresh=guide_thresh,
             input_thresh=input_thresh,
@@ -1238,7 +1238,7 @@ def main():
             auto_quality_adapt=auto_adapt
         )
         
-        with st.spinner("🔄 Applying Viveka post-processing..."):
+        with st.spinner("🔄 Applying PAR post-processing..."):
             # Get BOTH pre-CLAHE (for metrics) and post-CLAHE (for display)
             post_processed_pre_clahe, post_processed_display, adapt_info = refiner.refine(
                 denoised_img.copy(),
@@ -1261,7 +1261,7 @@ def main():
         
         # ===== VISUALIZATION SECTION =====
         st.header("🖼️ Visual Comparison")
-        st.markdown("Comparison of noisy input, denoised output, Viveka post-processed result (with CLAHE for display), and difference map (pre-CLAHE).")
+        st.markdown("Comparison of noisy input, denoised output, PAR post-processed result (with CLAHE for display), and difference map (pre-CLAHE).")
         
         col1, col2, col3, col4 = st.columns(4)
         
@@ -1272,7 +1272,7 @@ def main():
             st.image(denoised_img, caption="🔧 Denoised Output", use_container_width=True)
         
         with col3:
-            st.image(post_processed_display, caption="✨ Viveka Post-Processed\n(with CLAHE display)", use_container_width=True)
+            st.image(post_processed_display, caption="✨ PAR Post-Processed\n(with CLAHE display)", use_container_width=True)
         
         with col4:
             st.image(diff_map, caption="📊 Difference Map, Amplified)", use_container_width=True, clamp=True)
@@ -1394,7 +1394,7 @@ def main():
         cnr_data = {
             'Metric': ['CNR'],
             'Denoised Output': [f"{all_metrics['cnr_base']:.2f}"],
-            'Viveka Post-Processed': [f"{all_metrics['cnr_refined']:.2f}"],
+            'PAR Post-Processed': [f"{all_metrics['cnr_refined']:.2f}"],
             'Δ': [f"{cnr_delta:+.2f}"],
             'Interpretation': ['Higher = Better tissue differentiation']
         }
@@ -1411,7 +1411,7 @@ def main():
         fwhm_data = {
             'Metric': ['FWHM (pixels)'],
             'Denoised Output': [fwhm_base_str],
-            'Viveka Post-Processed': [fwhm_str],
+            'PAR Post-Processed': [fwhm_str],
             'Δ': [f"{all_metrics['fwhm_delta']:+.1f}" if all_metrics['fwhm_delta'] != 0 else "N/A"],
             'Interpretation': ['Lower = Sharper edges (better spatial resolution)']
         }
@@ -1426,7 +1426,7 @@ def main():
                 f"{all_metrics['glcm_contrast_base']:.3f}",
                 f"{all_metrics['glcm_correlation_base']:.3f}"
             ],
-            'Viveka Post-Processed': [
+            'PAR Post-Processed': [
                 f"{all_metrics['glcm_homogeneity_refined']:.3f}",
                 f"{all_metrics['glcm_entropy_refined']:.3f}",
                 f"{all_metrics['glcm_contrast_refined']:.3f}",
@@ -1484,9 +1484,9 @@ def main():
             st.metric(label="Significant Changes", value=f"{diff_stats['Pixels with Significant Change']:.1f}%")
         
         if cnr_delta > 0 and glcm_contrast_delta < all_metrics['glcm_contrast_base'] * 0.5:
-            st.success("✅ **Viveka successfully enhanced this image.** CNR improved while maintaining natural texture.")
+            st.success("✅ **PAR successfully enhanced this image.** CNR improved while maintaining natural texture.")
         elif cnr_delta < 0:
-            st.error("⚠️ **Viveka may have degraded this image.** CNR decreased. The input was likely already high quality.")
+            st.error("⚠️ **PAR may have degraded this image.** CNR decreased. The input was likely already high quality.")
         else:
             st.info("ℹ️ **Mixed results.** Review the metrics and visual comparison carefully.")
         
@@ -1502,7 +1502,7 @@ def main():
             axes[0, 1].axis('off')
             
             axes[0, 2].imshow(post_processed_display, cmap='gray')
-            axes[0, 2].set_title('Viveka Post-Processed (with CLAHE)', fontsize=12, fontweight='bold')
+            axes[0, 2].set_title('PAR Post-Processed (with CLAHE)', fontsize=12, fontweight='bold')
             axes[0, 2].axis('off')
             
             im = axes[1, 0].imshow(diff_map, cmap='RdBu', vmin=0, vmax=1)
@@ -1512,7 +1512,7 @@ def main():
             
             axes[1, 1].hist(noisy_img.flatten(), bins=50, alpha=0.5, label='Noisy', color='gray')
             axes[1, 1].hist(denoised_img.flatten(), bins=50, alpha=0.5, label='Denoised', color='blue')
-            axes[1, 1].hist(post_processed_display.flatten(), bins=50, alpha=0.5, label='Viveka (CLAHE)', color='red')
+            axes[1, 1].hist(post_processed_display.flatten(), bins=50, alpha=0.5, label='PAR (CLAHE)', color='red')
             axes[1, 1].set_title('Intensity Distribution', fontsize=12, fontweight='bold')
             axes[1, 1].legend()
             axes[1, 1].set_xlabel('Intensity')
@@ -1551,7 +1551,7 @@ def main():
         st.download_button(
             label="📥 Download Post-Processed Image (with CLAHE - for display)",
             data=buf_display,
-            file_name="viveka_post_processed_display.png",
+            file_name="par_post_processed_display.png",
             mime="image/png"
         )
         
@@ -1565,7 +1565,7 @@ def main():
         st.download_button(
             label="📥 Download Post-Processed Image (Pre-CLAHE - for metrics)",
             data=buf_pre,
-            file_name="viveka_post_processed_pre_clahe.png",
+            file_name="par_post_processed_pre_clahe.png",
             mime="image/png"
         )
         
@@ -1632,7 +1632,7 @@ def main():
         st.warning("⚠️ Please upload **both** noisy input and denoised output images to proceed.")
     
     else:
-        st.info("👆 Upload both images above to see the Viveka post-processing in action!")
+        st.info("👆 Upload both images above to see the PAR post-processing in action!")
         
         st.markdown("### How it works:")
         st.markdown(
@@ -1640,7 +1640,7 @@ def main():
             1. **Upload Noisy Image**: The original noisy medical image
             2. **Upload Denoised Image**: Output from your denoising model (e.g., X-GAN, RIDNet)
             3. **Quality Assessment**: Automatic input quality evaluation
-            4. **Adjust Parameters**: Fine-tune Viveka's refinement behavior
+            4. **Adjust Parameters**: Fine-tune PAR's refinement behavior
             5. **View Results**: See side-by-side comparison and comprehensive metrics
             
             The PAR module enhances the denoised output by:
